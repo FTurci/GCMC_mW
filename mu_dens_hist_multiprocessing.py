@@ -4,6 +4,7 @@
     wishes to sample. 
 
     Written by Mary Coe, University of Bristol, July 2018.
+    e-mail: m.k.coe@bristol.ac.uk
     Last updated October 2018.
 """
 
@@ -203,6 +204,7 @@ def run_curve(method, file_path, mus, num_processes, num_sims, save_frq, num_gr,
 	
 	return avg_densities
 
+#Specify file path to results folder and parameters to run for. 
 file_path = '../October_2018/Produce_mu_dens_graph/450K/decreasing/'
 mus_dec = (7.5,7.6,7.7,7.8,7.9,8.0,8.1,8.2,8.3,8.4,8.5,8.6,8.7,8.8,8.9,9.0,9.1,9.2,9.3,9.4,9.5,9.6,9.7,9.8,9.9,10.0,10.1,10.2,10.3,10.4,10.5,10.6,10.7,10.8,10.9,11.0,11.1,11.2,11.3,11.4,11.5,11.6,11.7,11.8,11.9,12.0,12.1,12.2,12.3,12.4,12.5)
 num_processors = 4
@@ -213,19 +215,18 @@ if not os.path.exists(file_path):
 
 avg_dens_decreasing = run_curve('decreasing',file_path, mus_dec, num_processors, num_sims, 1000, 10, 10000000,1000000,2,4) 
 
+#When moving to the increasing mu curve, create new file path and reverse order of mus.
 file_path = '../October_2018/Produce_mu_dens_graph/450K/increasing/'
 
 mus_inc = sorted(mus_dec, reverse=True)
 tuple(mus_inc)
-print mus_inc
-
-	
 
 if not os.path.exists(file_path):
 	os.mkdir(file_path)
 
 avg_dens_increasing = run_curve('increasing',file_path, mus_inc, num_processors, num_sims, 1000, 10, 10000000,1000000,0,4) 
 
+#Finally, for plots, output to general folder.
 file_path = '../October_2018/Produce_mu_dens_graph/450K/'
 
 plot_mu_dens(file_path,avg_dens_decreasing, avg_dens_increasing)
