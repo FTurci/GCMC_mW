@@ -146,7 +146,7 @@ def calc_areas(mols_hist, mus, mu_org, volume):
         comparisons[indx+1,4] = comparisons[indx+1,3]-comparisons[indx+1,2]
     
     for line in range(len(mus)+1):
-        print("{:.2f} {:.5f} {:.5f} {:.5f} {:.5f}".format(comparisons[line,0], comparisons[line,1], comparisons[line,2], comparisons[line,3], comparisons[line,4]))
+        print("{:.8f} {:.5f} {:.5f} {:.5f} {:.5f}".format(comparisons[line,0], comparisons[line,1], comparisons[line,2], comparisons[line,3], comparisons[line,4]))
    
         
 def reweight_beta(num_sims, file_path, volume, mus, mu_org, run):
@@ -180,4 +180,4 @@ def reweight_beta(num_sims, file_path, volume, mus, mu_org, run):
     plt.ylim(0, max(map(max,mols_hist[:,1:num_sims+2])))
     plt.savefig(file_path + '/hist_reweighting.pdf')
             
-reweight_mu(4, '../Results/multicanonical/864.5K/mu_5.37/', pow(4*1.8*2.3925,3), [-5.3,-5.32,-5.34,-5.36], -5.37, 0)
+reweight_mu(4, '../Results/multicanonical/864.5K/mu_5.37/', pow(4*1.8*2.3925,3), [-5.355545,-5.3555452,-5.3555454,-5.3555456,-5.3555458,-5.355546], -5.37, 0)
