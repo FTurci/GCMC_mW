@@ -52,7 +52,7 @@ def find_prob_dist(num_sims, file_path, volume, run, length):
         for entry in input_data:
             mols_hist[int(entry),1]+=1
             
-    total = np.sum(mols_hist[:,1]*((180.15)/(volume*6.022)))
+    total = np.sum(mols_hist[:,1])
     
     #Densities associated with molecules calculated
     for entry in range(int(max_mols+1)):
@@ -122,14 +122,19 @@ def reweight_mu(num_sims, file_path, volume, mus, mu_org, run):
     for sim in range(num_sims):
         
         input_data = np.genfromtxt(file_path + 'run_' + str(run) + '_'  + str(sim) + '/data.dat', usecols=(2))
-        
+        i=0
         #Generate new distributions
         for indx,mu in enumerate(mus):
             print("mu is {} indx is {}\n".format(mu,indx))
             dmu = mu_org - mu
+            print("dmu: {} -dmu is {}\n".format(dmu,-1*dmu))
             for entry in input_data:
                 mols_hist[int(entry),indx+2] += np.exp(-1.0*dmu*entry)
-            total[indx] = np.sum(((180.15)/(volume*6.022))*mols_hist[:,indx+2])
+                print("E: {} dmu: {} W: {}".format(entry, dmu, np.exp(-1.0*dmu*entry)))
+                i+=1
+                if i>10:
+                    break
+            total[indx] = np.sum(mols_hist[:,indx+2])
     
     
     for col in range(len(mus)):
@@ -189,5 +194,5 @@ def reweight_beta(num_sims, file_path, volume, T_org, Ts,mu_org, run):
     
     calc_areas(mols_hist,Ts,T_org, volume)
             
-reweight_mu(4, '../Results/multicanonical/864.5K/mu_5.37/', pow(4*1.8*2.3925,3), [-5.355545,-5.3555452,-5.3555454,-5.3555456,-5.3555458,-5.355546], -5.37, 0)
+reweight_mu(1, '../Results/multicanonical/864.5K/mu_5.37/', pow(4*1.8*2.3925,3), [-5.36], -5.37, 0)
 #reweight_beta(4, '../Results/multicanonical/864.5K/mu_5.37/', pow(4*1.8*2.3925,3), 864.5, [850,855,860,865,870,875,880],-5.37, 0)
