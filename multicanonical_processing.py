@@ -35,7 +35,7 @@ def plot_biased_unbiased_dens_profile(file_path, vol, num_sims, run):
 	total = np.zeros(4)
 	
 	#The array sizes are set by finding the maximum number of molecules across all simulations
-	for sim in xrange(num_sims):
+	for sim in range(num_sims):
 		dens_data = np.genfromtxt(file_path + "run_" + str(run) + "_" + str(sim) +"/data.dat", usecols=(2))
 		if(max(dens_data)>max_mols):
 			max_mols = max(dens_data)
@@ -43,13 +43,13 @@ def plot_biased_unbiased_dens_profile(file_path, vol, num_sims, run):
 	mols_hist = np.zeros((int(max_mols+1),2*num_sims+1))
 
 	#Densities associated with molecules calculated
-	for entry in xrange(int(max_mols+1)):
+	for entry in range(int(max_mols+1)):
 		mols_hist[entry,0] = (entry*180.15)/(vol*6.022)
 	
 	#Generate histogram by loading data and adding 1 to each relevant bin (1 bin per molecule number.
 	#Could not use numpy histogram function as did not quite bin correctly (I assume a precision error).
 	#This is the biased distribution.
-	for sim in xrange(num_sims):
+	for sim in range(num_sims):
 		dens_data = np.genfromtxt(file_path + "run_" + str(run) + "_" + str(sim) +"/data.dat", usecols=(2))
 		
 		for entry in dens_data:
@@ -65,10 +65,10 @@ def plot_biased_unbiased_dens_profile(file_path, vol, num_sims, run):
 	
 	#The unbiased probabilities are calculated by multiplying the biased with the weights (or
 	#effectively the previous iterations probabilities) and rescaling.
-	for sim in xrange(num_sims):
+	for sim in range(num_sims):
 		mols_hist[:,2*sim+1]/=total[sim]
 		total[sim] = 0
-		for entry in xrange(int(max_mols)):
+		for entry in range(int(max_mols)):
 			if(entry<len(weights)):
 				mols_hist[entry,2*(sim+1)] = weights[entry,1]*mols_hist[entry,2*sim+1]
 			else:
@@ -79,7 +79,7 @@ def plot_biased_unbiased_dens_profile(file_path, vol, num_sims, run):
 	#1-4 figures generated in one column and saved to the Graphs folder. 
 	fig = plt.figure(1)
 	num_graphs = num_sims*100 +11
-	for sim in xrange(num_sims):
+	for sim in range(num_sims):
 		graph = num_graphs+sim
 		ax1 = plt.subplot(graph)
 
@@ -110,16 +110,16 @@ def plot_initial_dens_profile(file_path, vol, num_sims, run):
 	max_mols = 0
 	y_lim = 0
 	total = np.zeros(4)
-	for sim in xrange(num_sims):
+	for sim in range(num_sims):
 		dens_data = np.genfromtxt(file_path + "run_" + str(run) + "_" + str(sim) +"/data.dat", usecols=(2))
 		if(max(dens_data)>max_mols):
 			max_mols = max(dens_data)
 	
 	mols_hist = np.zeros((int(max_mols+1),num_sims+1))
-	for entry in xrange(int(max_mols+1)):
+	for entry in range(int(max_mols+1)):
 		mols_hist[entry,0] = (entry*180.15)/(vol*6.022)
 
-	for sim in xrange(num_sims):
+	for sim in range(num_sims):
 		dens_data = np.genfromtxt(file_path + "run_" + str(run) + "_" + str(sim) +"/data.dat", usecols=(2))
 		total[sim] = len(dens_data)
 		
@@ -130,12 +130,12 @@ def plot_initial_dens_profile(file_path, vol, num_sims, run):
 		if(max(mols_hist[:,sim+1])>y_lim):
 			y_lim = max(mols_hist[:,sim+1])
 
-	for sim in xrange(num_sims):
+	for sim in range(num_sims):
 		mols_hist[:,sim+1]/=total[sim]
 
 
 	num_graphs = num_sims*100 +11
-	for sim in xrange(num_sims):
+	for sim in range(num_sims):
 		graph = num_graphs+sim
 		ax1 = plt.subplot(graph)
 
@@ -162,7 +162,7 @@ def extract_weights(file_path,vol, num_sims,run):
 	max_mols = 0
 	
 	#Finds the maximum number of molecules across all simulations to be used to size arrays.
-	for sim in xrange(num_sims):
+	for sim in range(num_sims):
 		dens_data = np.genfromtxt(file_path + "run_" + str(run) + "_" + str(sim) + "/data.dat", usecols=(2), dtype=int)
 		if(max_mols < max(dens_data)):
 			max_mols = max(dens_data)
@@ -171,7 +171,7 @@ def extract_weights(file_path,vol, num_sims,run):
 	total = 0
 
 	#Biased histogram of density profiles generated.
-	for sim in xrange(num_sims):
+	for sim in range(num_sims):
 		dens_data = np.genfromtxt(file_path + "run_" + str(run) + "_" + str(sim) + "/data.dat", usecols=(2), dtype=int)
 		total += len(dens_data)
 		for entry in dens_data:
@@ -185,7 +185,7 @@ def extract_weights(file_path,vol, num_sims,run):
 		prev_weights = np.genfromtxt(file_path + "run_" + str(run-1) + "_0/weights", usecols=(1))
 		max_weight = prev_weights[len(prev_weights)-1,]
 
-		for entry in xrange(max_mols+1):
+		for entry in range(max_mols+1):
 			weight_data[entry,0] = (entry*180.15)/(vol*6.022)
 			if(entry<len(prev_weights)):
 				weight_data[entry,1] *= (prev_weights[entry])
@@ -196,12 +196,12 @@ def extract_weights(file_path,vol, num_sims,run):
 	
 	#else only calculate densities
 	else:
-		for entry in xrange(max_mols+1):
+		for entry in range(max_mols+1):
 			weight_data[entry,0] = (entry*180.15)/(vol*6.022)
 	
 	#Save weights to file
 	with open(file_path + "Weights/weights_" + str(run), 'w') as w:
-		for entry in xrange(len(weight_data)):
+		for entry in range(len(weight_data)):
 			w.write("{} {}\n".format(weight_data[entry][0],weight_data[entry][1]))
 	
 	#Plot weights
@@ -221,7 +221,7 @@ def plot_time_series(file_path, num_sims, run):
 	
 	c = ['plum', 'lightblue', 'lightgreen', 'pink','crimson', 'salmon','yellow', 'beige', 'brown']
 	fig = plt.figure(1)
-	for sim in xrange(num_sims):
+	for sim in range(num_sims):
 		graph = 411+sim
 		ax1 = plt.subplot(graph)
 		dens_data = np.genfromtxt(file_path + "run_" + str(run) + "_" + str(sim) +"/data.dat", usecols=(0,1))
@@ -276,7 +276,7 @@ def generate_weights(file_path, num_sims, num_processes, save_frq, num_gr, num_s
 	
 	inputs = []
 	d=mp.Queue()	#Set up queue for multiprocessing
-	for sim in xrange(num_sims):
+	for sim in range(num_sims):
 		
 		#Generates INPUT files. Must leave time between to prevent program attempting to 
 		#open multiple files and write to multiple files at once. This can lead to errors.
@@ -295,7 +295,7 @@ def generate_weights(file_path, num_sims, num_processes, save_frq, num_gr, num_s
 	#Processes are run. The mW program uses the computer time to seed the random number generator
 	#hence a time delay between initiated each process is needed.
 	for p in processes:
-		print "Starting sim{}\n".format(p)
+		print("Starting sim{}\n".format(p))
 		p.start()
 		time.sleep(5)
 
@@ -314,8 +314,9 @@ def generate_weights(file_path, num_sims, num_processes, save_frq, num_gr, num_s
 
 #Call functions here.
 	
-#generate_weights('../October_2018/Multicanonical/450K_multiprocessing/mu_10.0/', 4, 4, 1000, 10, 1, 100000000, 1, 4, pow(4*1.8*2.3925,3), 5, True)
+generate_weights('../Results/Test_coex_840K/mu_-5.4995/', 4, 4, 1000, 10, 1, 500000000, 1, 4, pow(4*1.8*2.3925,3), 0, False)
 #time.sleep(10)
 #extract_weights('../October_2018/Multicanonical/450K_multiprocessing/mu_10.0/',pow(4*1.8*2.3925,3),4,5)
 #time.sleep(10)
-plot_biased_unbiased_dens_profile('../../Old_Github/GCMC_mW_old/September_2018/Multicanonical_by_hand/864.5K_multiprocessing/mu_5.37/',pow(4*1.8*2.3925,3),4,1)
+#plot_biased_unbiased_dens_profile('../../Old_Github/GCMC_mW_old/September_2018/Multicanonical_by_hand/864.5K_multiprocessing/mu_5.37/',pow(4*1.8*2.3925,3),4,1)
+
