@@ -12,6 +12,13 @@
  * T=910K:  epislon = 3.422
  * T=0.95*Tc=864.5K	epsilon = 3.6026
  * T=0.85*Tc=773.5K 	epsilon = 4.0264
+ * T = 915K		epsilon = 3.4037
+
+ * T = 750K		epsilon = 4.1526
+ * T=800K 		epsilon = 3.8930
+ * T=850K 		epsilon = 3.6640
+ * T=890K		epsilon = 3.4993
+ * T=840K		epsilon = 3.7077
  * For LJ: epsilon = 3.2747 mu = -2.7... a = 2.5 for critical point
  * Useful chemical potentials to follow.
  * Coordinates of molecules are in terms of the length of the molecule, however
@@ -48,18 +55,18 @@ using namespace std;
 //#define TRANSLATION		// Uncomment to perform translational moves in addition to insertion/deletion.
 					
 //#define MULTI
-#define MULTI_HAND
+//#define MULTI_HAND
 
 
 #define NRANDS 10000	 // These are the parameters needed for both mW and LJ simulations
-#define mu -10.0
+#define mu -5.4995
 #define PI 3.14159
 
 #define LJ_epsilon 3.2747  // The LJ parameters are defined in case of using LJ potential
 #define LJ_a 2.5
 #define LJ_sigma 1.0
 
-#define epsilon 6.921	// These parameters are needed only for mW simulations
+#define epsilon 3.7077 // These parameters are needed only for mW simulations
 #define sigma 2.3925
 #define A 7.049556277
 #define B 0.6022245584
