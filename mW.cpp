@@ -54,19 +54,19 @@ using namespace std;
 //#define SPHERICAL		// Uncomment to run with spherical surface. 
 //#define TRANSLATION		// Uncomment to perform translational moves in addition to insertion/deletion.
 					
-//#define MULTI
+#define MULTI
 //#define MULTI_HAND
 
 
 #define NRANDS 10000	 // These are the parameters needed for both mW and LJ simulations
-#define mu -5.4995
+#define mu -9.3
 #define PI 3.14159
 
 #define LJ_epsilon 3.2747  // The LJ parameters are defined in case of using LJ potential
 #define LJ_a 2.5
 #define LJ_sigma 1.0
 
-#define epsilon 3.7077 // These parameters are needed only for mW simulations
+#define epsilon  6.921 // These parameters are needed only for mW simulations
 #define sigma 2.3925
 #define A 7.049556277
 #define B 0.6022245584
@@ -122,7 +122,7 @@ class sim_box {
 			 int num_cells,num_cells_row, mca, mcr, num_mols, seed, current_steps, num_steps, num_steps_eqb, num_gr, save_frq, rnd_check;
 			 string file_path, in_file_path;
 			#ifdef MULTI
-				double Collection[max_N][max_N], Transition[max_N][max_N], Weights[max_N];
+				double Collection[max_N][max_N], Transition[max_N][max_N], Weights[max_N], Hits[max_N];
 				//double total; // Keeps track of the total unbiased probability in the transition matrix.
 				int max_mols; 
 			#endif
@@ -132,7 +132,7 @@ class sim_box {
 			#endif							
 			
 	
-	public: double return_volume(void) {return volume;}
+	public: 	double return_volume(void) {return volume;}
 			
 			/* Returns cell information. */
 			int return_num_cells_row(void) {return num_cells_row;}
@@ -194,9 +194,12 @@ class sim_box {
 				//Use convention j->i so T0->1 is j=0, i=1
 				double total=0;
 				for(int j = 0;j<max_mols; j++) {
-					for(int i=0;i<max_mols;i++) total+=Transition[j][i];
+					
+					for(int i=0;i<max_mols;i++) total+=Collection[j][i];
 					for(int i=0; i<max_mols; i++) {
-					 	Transition[j][i] = (Collection[j][i]+1)/(total+1);
+						//if(j>max_mols) Transition[j][i] = 1.0;
+					 	Transition[j][i] = (Collection[j][i]+1.0)/(total+1.0);
+						if(isnan(Transition[j][i])) cout<<"j: "<<j<<" i: "<<i<<" C: "<<Collection[j][i]<<" total: "<<total<<" max mols "<<max_mols<<endl;
 					}
 					total=0;
 				}
@@ -205,12 +208,14 @@ class sim_box {
 				double P=1.0, P_N;
 				for(int i=0;i<max_mols-1;i++) {
 					
-					P_N = P*(Transition[i][i+1]/Transition[i+1][i]);
+					/*P_N = P*(Transition[i][i+1]/Transition[i+1][i]);
 					Weights[i] = -log(P_N);
 					//cout<<i<<"->"<<i+1<<": "<<Transition[i][i+1]<<" "<<i+1<<"->"<<i<<": "<<Transition[i+1][i]<<" P: "<<P<<" P_N: "<<P_N<<" weight: "<<Weights[i]<<endl;
-					P=P_N;
+					P=P_N;*/
+					//Weights[i] = Hits[i]/steps;
 				}	
 			}
+			//void update_hits(void) {Hits[num_mols]+=1;cout<<"MOLS IS "<<num_mols<<endl;}
 			void write_weights(void) {
 				int i, j;
 				ofstream hist; string out_name;
@@ -237,7 +242,7 @@ class sim_box {
 				for(i = 0;i<max_mols; i++) hist<<Weights[i]<<" "<<endl;
 				hist.close();
 			}
-			double return_weight(int num_mols) {return Weights[num_mols];}
+			double return_weight(int u, int v) {return Transition[u][v];}
 			
 			void inc_max_mols(void) {max_mols++;}
 			int return_max_mols(void) {return max_mols;}
@@ -284,7 +289,7 @@ sim_box::sim_box(int num_cells_row_in, int mols, int mca_in, int mcr_in, int cur
 		for(int i=0;i<max_N;i++) {
 			Weights[i]=1.0;
 			for(int j=0;j<max_N;j++) {
-				Collection[j][i]=0; Transition[j][i]=0;
+				Collection[j][i]=0; Transition[j][i]=1;
 			}
 		}
 		max_mols = mols; //total = 0;
@@ -686,13 +691,17 @@ void decide_isertion (cell cell_list[],water_molecule gmol_list[], water_molecul
 	
 	#ifdef MULTI
 	prob_unbiased = prob; 
-	prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1);
+	prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1, sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols(),sim_env_ptr->return_mols()+1);
+	//prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1);
+	//if(isnan(prob)) cout<<"Prob_unbiased "<<prob_unbiased<<" W(u->v) "<<sim_env_ptr->return_weight(sim_env_ptr->return_mols(), sim_env_ptr->return_mols()+1)<<" W(v->u) "<<sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1,sim_env_ptr->return_mols())<<endl;
+
 	#endif
 	
 	#ifdef MULTI_HAND
 	prob_unbiased = prob;
 	prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1);
 	//cout<<"Prob before: "<<prob_unbiased<<" Prob after: "<<prob<<" Insertion with weights N: " <<sim_env_ptr->return_weight(sim_env_ptr->return_mols())<<" N+1: "<<sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1)<<endl;
+
 	#endif
 	
 
@@ -704,6 +713,7 @@ void decide_isertion (cell cell_list[],water_molecule gmol_list[], water_molecul
 		//Perform the move
 		#ifdef MULTI
 		sim_env_ptr->update_Collection(sim_env_ptr->return_mols(),sim_env_ptr->return_mols()+1,true,prob_unbiased);
+		//sim_env_ptr->update_hits();
 		#endif
 		//cout<<"Insertion prob was "<<prob<<endl;
 		insert_molecule(cell_list, gmol_list, sim_env_ptr, temp, deltaE);
@@ -713,6 +723,7 @@ void decide_isertion (cell cell_list[],water_molecule gmol_list[], water_molecul
 		//Increment the rejected move count
 		#ifdef MULTI
 		sim_env_ptr->update_Collection(sim_env_ptr->return_mols(),sim_env_ptr->return_mols(),false,prob_unbiased);
+		//sim_env_ptr->update_hits();
 		#endif
 		sim_env_ptr->inc_mcr();
 	}
@@ -788,22 +799,26 @@ void decide_deletion(cell cell_list[],water_molecule gmol_list[], water_molecule
 
 	#ifdef MULTI
 	prob_unbiased = prob;
-	prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1);
+	//prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1);
+	prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1, sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols(),sim_env_ptr->return_mols()-1);
+//if (isnan(prob)) {
+	//	cout<<"Prob_unbiased "<<prob_unbiased<<" W(u->v) "<<sim_env_ptr->return_weight(sim_env_ptr->return_mols(), sim_env_ptr->return_mols()-1)<<" W(v->u) "<<sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1,sim_env_ptr->return_mols())<<endl;
+	//}
 	#endif
 
 	#ifdef MULTI_HAND
 	prob_unbiased = prob;
 	prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1);
 	//cout<<"Prob before: "<<prob_unbiased<<" Prob after: "<<prob<<" Deletion with weights N: " <<sim_env_ptr->return_weight(sim_env_ptr->return_mols())<<" N-1: "<<sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1)<<endl;
+	
 	#endif
 
-	if (isnan(prob)) {
-		cout<<"Volume: "<<sim_env_ptr->return_volume()<<" Num mols: "<<sim_env_ptr->return_mols()<<" deltaE: "<<deltaE<<endl;
-	}
+	
 	
 	if (prob>sim_env_ptr->get_rnd())  { //Accept the move
 		#ifdef MULTI
 		sim_env_ptr->update_Collection(sim_env_ptr->return_mols(),sim_env_ptr->return_mols()-1,true,prob_unbiased);
+		//sim_env_ptr->update_hits();
 		#endif
 		//cout<<"Deletion prob was "<<prob<<endl;
 		sim_env_ptr->inc_mca();
@@ -814,6 +829,7 @@ void decide_deletion(cell cell_list[],water_molecule gmol_list[], water_molecule
 	else { //Reject the move
 		#ifdef MULTI
 		sim_env_ptr->update_Collection(sim_env_ptr->return_mols(),sim_env_ptr->return_mols(),false,prob_unbiased);
+		//sim_env_ptr->update_hits();
 		#endif
 		sim_env_ptr->inc_mcr();
 	}
@@ -1134,7 +1150,13 @@ void Perform_MC_Eqb(cell cell_list[], water_molecule gmol_list[], sim_box* sim_e
 	dummy_energy=0;
 
 	for (steps=0;steps<sim_env_ptr->return_steps_eqb();steps++) {
-		if(steps%save_frq==0) cout<<steps<<" equilibration attempts complete"<<endl;
+		if(steps%save_frq==0) {
+			cout<<steps<<" equilibration attempts complete"<<endl;
+			#ifdef MULTI
+			sim_env_ptr->update_Transition();
+			sim_env_ptr->update_weights();
+			#endif
+		}
 
 		#ifdef TRANSLATION
 		if (sim_env_ptr->get_rnd() > 0.5) { //Attempt insertion/deletion
@@ -1153,6 +1175,9 @@ void Perform_MC_Eqb(cell cell_list[], water_molecule gmol_list[], sim_box* sim_e
 			else {
 				if(sim_env_ptr->return_mols() == 0) {
 					sim_env_ptr->inc_mcr();
+					#ifdef MULTI
+					sim_env_ptr->update_Collection(0, 0, 1, true);
+					#endif
 					continue;
 				}
 			
@@ -1212,6 +1237,9 @@ void Perform_MC(cell cell_list[], water_molecule gmol_list[], sim_box* sim_env_p
 				
 				if(sim_env_ptr->return_mols() == 0) {
 					sim_env_ptr->inc_mcr();
+					#ifdef MULTI
+					sim_env_ptr->update_Collection(0, 0, 1, true);
+					#endif
 				}
 				else {
 				mol_num = floor(sim_env_ptr->get_rnd()*(sim_env_ptr->return_mols()));
