@@ -186,36 +186,43 @@ class sim_box {
 			/*TMMC matrices*/
 			#ifdef MULTI
 			// Collection matrix stores all the probabilities of transitions
-			void update_Collection(int N, int Na, double prob, bool acc) { 
+			void update_Collection(int N, int Na, double prob) { 
 				//Uses N as current num of mols. Na:  0 = N-1, 1 = N, 2 = N+1
-				if(acc) {Collection[N][Na]+=prob;  Totals_Collect[N]+=prob;}
-				else {Collection[N][Na]+=(1-prob); Totals_Collect[N]+=(1-prob);}
+				Collection[N][Na]+=prob;  Totals_Collect[N]+=prob;
+				
 			}
 			void update_Transition(void) {
 				//Uses convention j=N; 0 = N-1, 0 = N, 1 = N+1
-				for(int j = 0;j<max_mols; j++) {
+				for(int j = 0;j<max_N; j++) {
 					for(int i=0; i<3; i++) {
 					 	Transition[j][i] = (Collection[j][i]+1.0)/(Totals_Collect[j]+1.0);
-						if(isnan(Transition[j][i])) cout<<"j: "<<j<<" i: "<<i<<" C: "<<Collection[j][i]<<" total: "<<Totals_Collect[j]<<" max mols "<<max_mols<<endl;
+						if(isnan(Transition[j][i])) {cout<<"j: "<<j<<" i: "<<i<<" C: "<<Collection[j][i]<<" total: "<<Totals_Collect[j]<<" max mols "<<max_mols<<endl; 
+							write_weights();
+							exit(EXIT_FAILURE);}
 					}
 				}
 			}
 			void update_weights(void) {
-				double total=0.0;
 				cout<<"max mols is "<<max_mols<<endl;
 				Weights[0] = 1.0;
-				total = 1.0;
-				for(int i=1;i<max_N;i++) {
+				double total = 1.0;
+				for(int i=0;i<max_N-1;i++) {
 					
-					Weights[i] = Weights[i-1]*(Transition[i][2]/Transition[i+1][0]);
+					Weights[i+1] = Weights[i]*(Transition[i][2]/Transition[i+1][0]);
+					total += Weights[i];
 					//Weights[i] = -1.0*log(P_N);
-					//cout<<i<<"->"<<i+1<<": "<<Transition[i][2]<<" "<<i+1<<"->"<<i<<": "<<Transition[i+1][0]<<" P: "<<P<<" P_N: "<<P_N<<" weight: "<<Weights[i]<<" total "<<total<<endl;
+					cout<<i-1<<"->"<<i<<": "<<Transition[i-1][2]<<" "<<i+1<<"->"<<i<<": "<<Transition[i][0]<<" weight: "<<Weights[i]<<" and before: "<<Weights[i-1]<<endl;
 					//total+=Weights[i];
 					//cout<<"TOTAL IS "<<total<<" WEIGHTS ARE "<<Weights[i]<<endl;
 				}
+				//for(int i=(int)floor(0.8*max_mols);i<max_N;i++) Weights[i] = Weights[(int)floor(0.8*max_mols)-1];
+				//exit(EXIT_FAILURE);
 				//for(int i=max_mols;i<max_N;i++) Weights[i] = Weights[max_mols-1];
 				//cout<<"TOTAL IS "<<total<<" WEIGHTS ARE "<<Weights[i]<<endl;
-				//for(int i=0;i<max_N;i++) Weights[i]/=total;	
+				for(int i=0;i<max_N;i++) {
+					Weights[i]/=total;	
+					Weights[i] = -log(Weights[i]);
+				}
 			}
 			//void update_hits(void) {Hits[num_mols]+=1;cout<<"MOLS IS "<<num_mols<<endl;}
 			void write_weights(void) {
@@ -246,6 +253,15 @@ class sim_box {
 			}
 			double return_weight(int N) {return Weights[N];}
 			
+			void write_weights_current(int steps) {
+				
+				ofstream weights; string out_name;
+				out_name = file_path + "weights_" + to_string(steps) + ".txt";
+				weights.open(out_name, ios::out);
+				for(int i=0;i<max_N;i++) weights<<Weights[i]<<endl;
+				weights.close();
+			}
+			
 			void inc_max_mols(void) {max_mols++;}
 			int return_max_mols(void) {return max_mols;}
 			#endif
@@ -256,7 +272,7 @@ class sim_box {
 			#endif
 
 	sim_box() {};
-	sim_box(int num_cells_row_in, int mols, int mca_in, int mcr_in, int current_in, int steps_eqb, int steps, int gr, int frq, int seed_in, string file_path_in, string load_file_path, double weights_in[]);
+	sim_box(int num_cells_row_in, int mols, int mca_in, int mcr_in, int current_in, int steps_eqb, int steps, int gr, int frq, int seed_in, string file_path_in, string load_file_path);
 };
 
 /*These constructors set up the classes within the simulation. Sim_box is called only once, and cell is
@@ -274,7 +290,7 @@ cell::cell(int ID, int i_in, int j_in, int k_in, int num_occupants_in) {
 
 }
 
-sim_box::sim_box(int num_cells_row_in, int mols, int mca_in, int mcr_in, int current_in, int steps_eqb, int steps, int gr, int frq, int seed_in, string file_path_in, string load_file_path, double weights_in[]) {
+sim_box::sim_box(int num_cells_row_in, int mols, int mca_in, int mcr_in, int current_in, int steps_eqb, int steps, int gr, int frq, int seed_in, string file_path_in, string load_file_path) {
 	
 		volume = pow((num_cells_row_in*a),3); num_cells = pow(num_cells_row_in,3); 
 		num_cells_row = num_cells_row_in; mca = mca_in; mcr = mcr_in; num_mols = mols;
@@ -291,13 +307,14 @@ sim_box::sim_box(int num_cells_row_in, int mols, int mca_in, int mcr_in, int cur
 		for(int i=0;i<max_N;i++) {
 			Weights[i]=1.0; Totals_Collect[i] = 0.0;
 			for(int j=0;j<max_N;j++) {
-				Collection[j][i]=0; Transition[j][i]=1; 
+				Collection[j][i]=0.0; Transition[j][i]=0.0; 
 			}
 		}
 		max_mols = mols; 
 		#endif
 		
 		#ifdef MULTI_HAND
+		//NEED TO MOVE THIS TO INITIALISE ELSEWHERE
 		for(int i=0;i<max_N;i++) {
 			Weights[i] = weights_in[i];
 			cout<<"Weight: "<<Weights[i]<<" and in "<<weights_in[i]<<endl;
@@ -693,7 +710,8 @@ void decide_isertion (cell cell_list[],water_molecule gmol_list[], water_molecul
 	
 	#ifdef MULTI
 	prob_unbiased = prob; 
-	prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1);
+	prob*=exp(sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1)-sim_env_ptr->return_weight(sim_env_ptr->return_mols()));
+	//prob*=(sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1));
 	//prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1);
 	//if(isnan(prob)) cout<<"Prob_unbiased "<<prob_unbiased<<" eta(N) "<<sim_env_ptr->return_weight(sim_env_ptr->return_mols())<<" eta(N+1) "<<sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1)<<endl;
 
@@ -701,7 +719,8 @@ void decide_isertion (cell cell_list[],water_molecule gmol_list[], water_molecul
 	
 	#ifdef MULTI_HAND
 	prob_unbiased = prob;
-	prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1);
+	
+	//prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1);
 	//cout<<"Prob before: "<<prob_unbiased<<" Prob after: "<<prob<<" Insertion with weights N: " <<sim_env_ptr->return_weight(sim_env_ptr->return_mols())<<" N+1: "<<sim_env_ptr->return_weight(sim_env_ptr->return_mols()+1)<<endl;
 
 	#endif
@@ -714,7 +733,7 @@ void decide_isertion (cell cell_list[],water_molecule gmol_list[], water_molecul
 	if (prob>sim_env_ptr->get_rnd()) {
 		//Perform the move
 		#ifdef MULTI
-		sim_env_ptr->update_Collection(sim_env_ptr->return_mols(),2,prob_unbiased, true);
+		sim_env_ptr->update_Collection(sim_env_ptr->return_mols(),2,prob_unbiased);
 		//sim_env_ptr->update_hits();
 		#endif
 		//cout<<"Insertion prob was "<<prob<<endl;
@@ -724,7 +743,7 @@ void decide_isertion (cell cell_list[],water_molecule gmol_list[], water_molecul
 	else {
 		//Increment the rejected move count
 		#ifdef MULTI
-		sim_env_ptr->update_Collection(sim_env_ptr->return_mols(),1,prob_unbiased,false);
+		sim_env_ptr->update_Collection(sim_env_ptr->return_mols(),1,1.0-prob_unbiased);
 		//sim_env_ptr->update_hits();
 		#endif
 		sim_env_ptr->inc_mcr();
@@ -801,8 +820,9 @@ void decide_deletion(cell cell_list[],water_molecule gmol_list[], water_molecule
 
 	#ifdef MULTI
 	prob_unbiased = prob;
+	prob*=exp(sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1)-sim_env_ptr->return_weight(sim_env_ptr->return_mols()));
 	//prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1);
-	prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1);
+	//prob*=(sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1));
 if (isnan(prob)) {
 		//cout<<"Prob_unbiased "<<prob_unbiased<<" eta(N) "<<sim_env_ptr->return_weight(sim_env_ptr->return_mols())<<"eta(N-1) "<<sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1)<<endl;
 	}
@@ -810,7 +830,8 @@ if (isnan(prob)) {
 
 	#ifdef MULTI_HAND
 	prob_unbiased = prob;
-	prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1);
+	//prob*=sim_env_ptr->return_weight(sim_env_ptr->return_mols())/sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1);
+	
 	//cout<<"Prob before: "<<prob_unbiased<<" Prob after: "<<prob<<" Deletion with weights N: " <<sim_env_ptr->return_weight(sim_env_ptr->return_mols())<<" N-1: "<<sim_env_ptr->return_weight(sim_env_ptr->return_mols()-1)<<endl;
 	
 	#endif
@@ -819,7 +840,7 @@ if (isnan(prob)) {
 	
 	if (prob>sim_env_ptr->get_rnd())  { //Accept the move
 		#ifdef MULTI
-		sim_env_ptr->update_Collection(sim_env_ptr->return_mols(),0,prob_unbiased, true);
+		sim_env_ptr->update_Collection(sim_env_ptr->return_mols(),0,prob_unbiased);
 		//sim_env_ptr->update_hits();
 		#endif
 		//cout<<"Deletion prob was "<<prob<<endl;
@@ -830,7 +851,7 @@ if (isnan(prob)) {
 	
 	else { //Reject the move
 		#ifdef MULTI
-		sim_env_ptr->update_Collection(sim_env_ptr->return_mols(),1,prob_unbiased, false);
+		sim_env_ptr->update_Collection(sim_env_ptr->return_mols(),1,1.0-prob_unbiased);
 		//sim_env_ptr->update_hits();
 		#endif
 		sim_env_ptr->inc_mcr();
@@ -1152,14 +1173,7 @@ void Perform_MC_Eqb(cell cell_list[], water_molecule gmol_list[], sim_box* sim_e
 	dummy_energy=0;
 
 	for (steps=0;steps<sim_env_ptr->return_steps_eqb();steps++) {
-		if(steps%save_frq==0) {
-			cout<<steps<<" equilibration attempts complete"<<endl;
-			#ifdef MULTI
-			sim_env_ptr->update_Transition();
-			//cout<<"Updating weights"<<endl;
-			//sim_env_ptr->update_weights();
-			#endif
-		}
+		
 
 		#ifdef TRANSLATION
 		if (sim_env_ptr->get_rnd() > 0.5) { //Attempt insertion/deletion
@@ -1179,7 +1193,7 @@ void Perform_MC_Eqb(cell cell_list[], water_molecule gmol_list[], sim_box* sim_e
 				if(sim_env_ptr->return_mols() == 0) {
 					sim_env_ptr->inc_mcr();
 					#ifdef MULTI
-					sim_env_ptr->update_Collection(0, 0, 1, true);
+					sim_env_ptr->update_Collection(0, 0, 1);
 					#endif
 					continue;
 				}
@@ -1207,6 +1221,15 @@ void Perform_MC_Eqb(cell cell_list[], water_molecule gmol_list[], sim_box* sim_e
 			decide_translation(mol, temp, gmol_list, cell_list, sim_env, sim_env_ptr->get_rnd(), dis, pcell);
 		}
 		#endif
+		if(steps%save_frq==0) {
+			cout<<steps<<" equilibration attempts complete"<<endl;
+			#ifdef MULTI
+			sim_env_ptr->update_Transition();
+			//cout<<"Updating weights"<<endl;
+			sim_env_ptr->update_weights();
+			//sim_env_ptr->write_weights_current(steps);
+			#endif
+		}
 		
 	}		
 	cout<<"Equilibration Complete"<<endl;
@@ -1241,7 +1264,7 @@ void Perform_MC(cell cell_list[], water_molecule gmol_list[], sim_box* sim_env_p
 				if(sim_env_ptr->return_mols() == 0) {
 					sim_env_ptr->inc_mcr();
 					#ifdef MULTI
-					sim_env_ptr->update_Collection(0, 0, 1, true);
+					sim_env_ptr->update_Collection(0, 0, 1);
 					#endif
 				}
 				else {
@@ -1284,6 +1307,7 @@ void Perform_MC(cell cell_list[], water_molecule gmol_list[], sim_box* sim_env_p
 			#ifdef MULTI
 			sim_env_ptr->update_Transition();
 			sim_env_ptr->update_weights();
+			//sim_env_ptr->write_weights_current(sim_env_ptr->return_steps_eqb()+steps);
 			#endif
 			avg_energy += sim_env_ptr->return_running_energy();
 			avg_dens+=dens;
@@ -1562,6 +1586,8 @@ int main(int argc, char* argv[]) {
 		seeds.close();
 	}
 	cout<<"num_mols is "<<num_mols<<endl;
+	
+	#ifdef MULTI_HAND
 	double dens, w, weights_in[max_N]; int m=0;
 	ifstream weight_func(load_file_path + "weights"); 
 		
@@ -1574,7 +1600,8 @@ int main(int argc, char* argv[]) {
 	
 	weight_func.close();
 	for(int i=m;i<max_N;i++) weights_in[i] = weights_in[m-1];
-	sim_box sim_env(num_cells_row, num_mols, mca, mcr, current_num_steps, num_steps_eqb, num_steps, num_gr, save_frq, seed, file_path, load_file_path, weights_in);
+	#endif
+	sim_box sim_env(num_cells_row, num_mols, mca, mcr, current_num_steps, num_steps_eqb, num_steps, num_gr, save_frq, seed, file_path, load_file_path);
 	cout<<"Simulation environment created"<<endl;
 	
 	
