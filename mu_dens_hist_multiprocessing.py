@@ -17,6 +17,7 @@ import os
 import matplotlib.pyplot as plt
 import multiprocessing as mp
 import time 
+import datetime
 
 def avg_dens(file_path):
 
@@ -36,8 +37,7 @@ def avg_dens(file_path):
 			attempt_counter+=1
 			subprocess.call('./mW')
 	if attempt_counter>4:
-		print "Error, failed after 5 attempts"
-		print file_path
+		print("Error, failed after 5 attempts")
 
 	dens = np.mean(dens_array)
 	print("average dens is {}\n".format(dens))
@@ -47,13 +47,13 @@ def update_mu_infile(mu):
 	
 	""" This function updates the value of mu in the original C++ program and
 	    recompiles it. """
-	print "UPDATING MU TO {}\n".format(mu)
+	print("UPDATING MU TO {}\n".format(mu))
 	
 	for line in fi.input("mW.cpp", inplace=True):
 		if line.startswith("#define mu "):
-			print ("#define mu {}\n".format(-1.0*mu)),
+			print(f'#define mu {-1.0*mu}', end='\n')
 		else:
-			print line,
+			print(f'{line}', end='')
 
 	subprocess.call('make')
 	
@@ -61,25 +61,29 @@ def update_mu_infile(mu):
 
 def update_input_file(mu, sim, file_path, mu_diff, method):
 
-	""" Before each simulation, the input file must be updated to reflect
-	    the loading and saving file paths, as well as if the simulation 
-	    will load from a previous simulation. """
 	
-	for line in fi.input(file_path + "INPUT", inplace = True):
-		if (line.startswith("LOAD")):
-			print "LOAD TRUE"
-		elif line.startswith("FILE_PATH"):
-			print "FILE_PATH {}mu_{}_{}/\n".format(file_path,mu,sim),
-		elif line.startswith("IN_PATH"):
-			if(method=='decreasing'):
-				print "IN_PATH {}mu_{}_{}/\n".format(file_path,mu-mu_diff,sim),
-			else:
-				print "IN_PATH {}mu_{}_{}/\n".format(file_path,mu+mu_diff,sim), 
-		else:
-			print line,
+#    Before each simulation, the input file must be updated to reflect
+#	the loading and saving file paths, as well as if the simulation 
+#	will load from a previous simulation.
+    
+    
+    for line in fi.input(file_path + "INPUT", inplace = True):
+        if (line.startswith("LOAD")):
+            print(f'LOAD TRUE', end='\n')
+        elif line.startswith("FILE_PATH"):
+            fp = file_path + 'mu_' + str(mu) + '_' + str(sim) + '/'
+            print(f'FILE_PATH {fp}',end='\n')
+        elif line.startswith("IN_PATH"):
+            if(method=='decreasing'):
+                fp = file_path + 'mu_' + str(mu-mu_diff) + '_' + str(sim) + '/'
+                print(f'IN_PATH {fp}', end='\n')
+            else:
+                fp = file_path + 'mu_' + str(mu+mu_diff) + '_' + str(sim) + '/'
+                print(f'IN_PATH {fp}', end='\n')
+        else:
+            print(f'{line}')
 
-	os.mkdir(file_path + "mu_" + str(mu) + "_" + str(sim))
-	return 0
+    os.mkdir(file_path + "mu_" + str(mu) + "_" + str(sim))
 	
 def write_input_file(file_path, load, file_path_in, save_frq, num_gr, num_steps_eqb, num_steps, num_mols, num_cells_row, test):
 	""" Before the first simulation is run, the input file must be written to
@@ -154,7 +158,7 @@ def run_sim(input_file_path, output):
 	subprocess.call(['./mW',input_file_path])
 	dens_array = np.genfromtxt(input_file_path + "data.dat", usecols= 1)
 	dens = np.mean(dens_array)
-	print "dens is {}\n".format(dens)
+	print("dens is {}\n".format(dens))
 	
 	output.put(dens)
 
@@ -176,7 +180,7 @@ def run_curve(method, file_path, mus, num_processes, num_sims, save_frq, num_gr,
 		output = mp.Queue()
 		update_mu_infile(mu)
 		time.sleep(2)
-		for sim in xrange(num_sims):
+		for sim in range(num_sims):
 			input_file_path = file_path+"mu_" + str(mu) + "_" + str(sim) + "/"
 			if(mus.index(mu)>0):
 				if(method=='decreasing'):
@@ -205,16 +209,17 @@ def run_curve(method, file_path, mus, num_processes, num_sims, save_frq, num_gr,
 	return avg_densities
 
 #Specify file path to results folder and parameters to run for. 
+
 file_path = '../March_2019/Produce_mu_dens_graph/800K/decreasing/'
-mus_dec = [3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5.0,5.1,5.2,5.3,5.4,5.45,5.5,5.55,5.56,5.565,5.7,5.75,5.8,5.9,6.0,6.1,6.2,6.3,6.4,6.5 \
-				6.7,6.8,6.9,7.0,7.1,7.2,7.3,7.4,7.5]
-num_processors = 4
-num_sims = 4
+mus_dec = [3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5.0,5.1,5.2,5.3,5.4,5.45,5.5,5.55,\
+           5.56,5.565,5.7,5.75,5.8,5.9,6.0,6.1,6.2,6.3,6.4,6.5,6.6,6.7,6.8,6.9,7.0,7.1,7.2,7.3,7.4,7.5]
+num_processors = 2
+num_sims = 2
 
 if not os.path.exists(file_path):
 	os.makedirs(file_path)
 
-avg_dens_decreasing = run_curve('decreasing',file_path, mus_dec, num_processors, num_sims, 1000, 10, 10000000,1000000,2,4) 
+avg_dens_decreasing = run_curve('decreasing',file_path, mus_dec, num_processors, num_sims, 10, 2, 100,100,0,4) 
 
 #When moving to the increasing mu curve, create new file path and reverse order of mus.
 file_path = '../March_2019/Produce_mu_dens_graph/800K/increasing/'
@@ -225,7 +230,7 @@ tuple(mus_inc)
 if not os.path.exists(file_path):
 	os.mkdir(file_path)
 
-avg_dens_increasing = run_curve('increasing',file_path, mus_inc, num_processors, num_sims, 1000, 10, 10000000,1000000,0,4) 
+avg_dens_increasing = run_curve('increasing',file_path, mus_inc, num_processors, num_sims, 10, 2, 100,100,0,4) 
 
 #Finally, for plots, output to general folder.
 file_path = '../March_2019/Produce_mu_dens_graph/800K/'
@@ -233,6 +238,6 @@ file_path = '../March_2019/Produce_mu_dens_graph/800K/'
 plot_mu_dens(file_path,avg_dens_decreasing, avg_dens_increasing)
 
 with open(file_path + "dens_profile", 'w') as dprof:
-	for entry in xrange(0,len(avg_dens_decreasing)):
+	for entry in range(0,len(avg_dens_decreasing)):
 		dprof.write("{} {} {}\n".format(avg_dens_decreasing[entry][0],  avg_dens_decreasing[entry][1], avg_dens_increasing[-entry][1]))
 		
